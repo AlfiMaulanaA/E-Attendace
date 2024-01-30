@@ -7,35 +7,52 @@
             <div class="card-header">MataKuliah List</div>
             <div class="card-body">
                 <div class="container-widget">
-                    <div class="widget" v-for="(matakuliah, i) in matakuliahs" :key="matakuliah.id">
-                        <div class="widget-header" @click="openAbsenModal(matakuliah.id)" style="cursor: pointer">
+                    <div class="widget" v-for="matakuliah in matakuliahs" :key="matakuliah.id">
+                        <div class="widget-header" @click="openAbsenModal(matakuliah)" data-bs-toggle="modal"
+                            data-bs-target="#absenModal">
                             {{ matakuliah.name }}
                         </div>
                         <div class="widget-after-header">{{ matakuliah.dosen }}</div>
                         <div class="widget-body">{{ matakuliah.hari }}</div>
-                        <div class="widget-footer">{{ matakuliah.jamMulai }} - {{ matakuliah.jamSelesai }}</div>
+                        <div class="widget-footer">
+                            {{ matakuliah.jamMulai }} - {{ matakuliah.jamSelesai }}
+                        </div>
                     </div>
                 </div>
                 <div class="mt-4">Klik Mata Kuliah untuk absen</div>
-                <pre class="text-danger">Notes: Absen tidak bisa dilakukan diluar kelas!</pre>
+                <pre class="text-danger">
+          Notes: Absen tidak bisa dilakukan di luar kelas!
+        </pre>
             </div>
         </div>
 
-        <!-- Absen Modal -->
-        <div class="modal fade" id="absenModal" tabindex="-1">
+        <!-- Bootstrap Modal -->
+        <div class="modal fade" id="absenModal" tabindex="-1" aria-labelledby="absenModalLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">Absen</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" @click="closeAbsenModal"></button>
+                        <h5 class="modal-title" id="absenModalLabel">Absen Form</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <form @submit.prevent="submitAbsen">
+                        <form @submit.prevent="submitAbsenForm">
                             <div class="mb-3">
                                 <label for="nim" class="form-label">NIM</label>
-                                <input type="number" class="form-control" v-model="nimInput" required>
+                                <input type="number" class="form-control" v-model="absenForm.nim" required>
+                                <!-- Display Nim validation error message -->
+                                <div v-if="!isNimValid" class="text-danger mt-2">
+                                    NIM not found in the database.
+                                </div>
                             </div>
-                            <button type="submit" class="btn btn-primary">Submit</button>
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Name</label>
+                                <input type="text" class="form-control" v-model="absenForm.name" readonly>
+                            </div>
+                            <div class="mb-3">
+                                <label for="matkul" class="form-label">Mata Kuliah</label>
+                                <input type="text" class="form-control" v-model="absenForm.matkul" readonly>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Absen</button>
                         </form>
                     </div>
                 </div>
@@ -44,16 +61,18 @@
     </div>
 </template>
 
-<!-- Rest of the code remains the same -->
-
-
 <script setup>
 import { ref, onMounted } from 'vue';
 import axios from 'axios';
 
 const matakuliahs = ref([]);
-const nimInput = ref('');
-const selectedMatakuliahId = ref(null);
+const absenForm = ref({
+    nim: null,
+    name: '', // This can be removed if it's not used in your form
+    matkul: '',
+});
+
+const isNimValid = ref(true);
 
 const fetchMataKuliahs = async () => {
     try {
@@ -64,43 +83,29 @@ const fetchMataKuliahs = async () => {
     }
 };
 
-const openAbsenModal = (matakuliahId) => {
-    selectedMatakuliahId.value = matakuliahId;
-    $('#absenModal').modal('show'); // Show the modal
+const openAbsenModal = (matakuliah) => {
+    absenForm.value.matkul = matakuliah.name;
+    absenForm.value.nim = null;
+    isNimValid.value = true;
 };
 
-const closeAbsenModal = () => {
-    selectedMatakuliahId.value = null;
-    nimInput.value = '';
-    $('#absenModal').modal('hide'); // Hide the modal
-};
-
-const submitAbsen = async () => {
+const submitAbsenForm = async () => {
     try {
-        const nim = parseInt(nimInput.value);
-        if (!isNaN(nim)) {
-            // Check if the Nim exists in the User table
-            const response = await axios.get(`http://localhost:8080/api/users/${nim}`);
-            if (response.data) {
-                // If Nim exists, save the Absen entry
-                const matakuliahId = selectedMatakuliahId.value;
-                const timestamp = new Date().toISOString();
-                await axios.post('http://localhost:8080/api/absen', {
-                    name: response.data.name,
-                    matkul: matakuliahId,
-                    nim,
-                    timestamp,
-                });
-                closeAbsenModal(); // Close the modal
-                // You can also update the Absen list if needed
-            } else {
-                alert('NIM not found in the User table. Please enter a valid NIM.');
-            }
-        } else {
-            alert('Please enter a valid NIM.');
-        }
+        const absenData = {
+            nim: absenForm.value.nim,
+            matkul: absenForm.value.matkul,
+        };
+
+        await axios.post('http://localhost:8080/api/absen', absenData);
+        console.log("Success to Absen");
+        window.location.reload();
     } catch (error) {
-        console.error('Error submitting absen:', error);
+        if (error.response && error.response.status === 404) {
+            isNimValid.value = false;
+        } else {
+            console.error('Error submitting absen:', error);
+            // Handle other errors (e.g., show an error message)
+        }
     }
 };
 
@@ -124,4 +129,6 @@ onMounted(() => {
     font-weight: 600;
     min-width: 180px;
 }
+
+/* Add your custom styles here */
 </style>

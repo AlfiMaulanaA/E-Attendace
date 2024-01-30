@@ -59,13 +59,15 @@
             <label for="hari" class="form-label">Hari</label>
             <input type="text" class="form-control" v-model="formData.hari" required>
           </div>
+
           <div class="mb-3">
             <label for="jamMulai" class="form-label">Jam Mulai</label>
-            <input type="text" class="form-control" v-model="formData.jamMulai" required>
+            <input type="time" class="form-control" v-model="formData.jamMulai" required>
           </div>
+
           <div class="mb-3">
             <label for="jamSelesai" class="form-label">Jam Selesai</label>
-            <input type="text" class="form-control" v-model="formData.jamSelesai" required>
+            <input type="time" class="form-control" v-model="formData.jamSelesai" required>
           </div>
           <button type="submit" class="btn btn-primary">{{ isEditing ? 'Update' : 'Create' }}</button>
         </form>
@@ -89,10 +91,43 @@ const formData = ref({
 });
 const isEditing = ref(false);
 
+const formatTime = (dateTime) => {
+  if (!dateTime) return '';
+
+  const time = new Date(dateTime);
+  if (isNaN(time.getTime())) {
+    return '';
+  }
+
+  // Format the time in HH:MM AM/PM format
+  return time.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true // Use 12-hour format with AM/PM
+  });
+};
+
+
+
+const prepareFormDataForSubmit = (data) => {
+  // If your backend requires specific formatting for LocalDateTime, do it here
+  // Example: Assuming backend needs a full date-time string
+  const today = new Date().toISOString().substring(0, 10); // YYYY-MM-DD
+  return {
+    ...data,
+    jamMulai: data.jamMulai ? `${today}T${data.jamMulai}:00` : null,
+    jamSelesai: data.jamSelesai ? `${today}T${data.jamSelesai}:00` : null
+  };
+};
+
 const fetchMataKuliahs = async () => {
   try {
     const response = await axios.get('http://localhost:8080/api/matakuliah');
-    matakuliahs.value = response.data;
+    matakuliahs.value = response.data.map(mk => ({
+      ...mk,
+      jamMulai: formatTime(mk.jamMulai),
+      jamSelesai: formatTime(mk.jamSelesai)
+    }));
   } catch (error) {
     console.error('Error fetching matakuliahs:', error);
   }
@@ -100,15 +135,9 @@ const fetchMataKuliahs = async () => {
 
 const createMataKuliah = async () => {
   try {
-    await axios.post('http://localhost:8080/api/matakuliah', formData.value);
-    formData.value = {
-      name: '',
-      dosen: '',
-      link: '',
-      hari: '',
-      jamMulai: '',
-      jamSelesai: ''
-    };
+    const submitData = prepareFormDataForSubmit(formData.value);
+    await axios.post('http://localhost:8080/api/matakuliah', submitData);
+    resetFormData();
     fetchMataKuliahs();
   } catch (error) {
     console.error('Error creating matakuliah:', error);
@@ -125,15 +154,9 @@ const editMataKuliah = (id) => {
 
 const updateMataKuliah = async () => {
   try {
-    await axios.put(`http://localhost:8080/api/matakuliah/${formData.value.id}`, formData.value);
-    formData.value = {
-      name: '',
-      dosen: '',
-      link: '',
-      hari: '',
-      jamMulai: '',
-      jamSelesai: ''
-    };
+    const submitData = prepareFormDataForSubmit(formData.value);
+    await axios.put(`http://localhost:8080/api/matakuliah/${formData.value.id}`, submitData);
+    resetFormData();
     isEditing.value = false;
     fetchMataKuliahs();
   } catch (error) {
@@ -148,6 +171,17 @@ const deleteMataKuliah = async (id) => {
   } catch (error) {
     console.error('Error deleting matakuliah:', error);
   }
+};
+
+const resetFormData = () => {
+  formData.value = {
+    name: '',
+    dosen: '',
+    link: '',
+    hari: '',
+    jamMulai: '',
+    jamSelesai: ''
+  };
 };
 
 onMounted(() => {

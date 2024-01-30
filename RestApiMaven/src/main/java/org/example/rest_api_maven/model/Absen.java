@@ -13,6 +13,7 @@ public class Absen {
     private Long id;
     private String name;
     private String matkul;
+    private String status;
     private Long nim;
     @Temporal(TemporalType.TIMESTAMP)
     private Date timestamp;
@@ -24,6 +25,7 @@ public class Absen {
         this.id = id;
         this.name = name;
         this.matkul = matkul;
+        this.status = status;
         this.nim = nim;
         this.timestamp = timestamp;
     }
@@ -50,6 +52,13 @@ public class Absen {
 
     public void setMatkul(String matkul) {
         this.matkul = matkul;
+    }
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 
     public Long getNim() {

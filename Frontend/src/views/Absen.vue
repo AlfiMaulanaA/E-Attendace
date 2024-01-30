@@ -13,6 +13,8 @@
                             <th>ID</th>
                             <th>Name</th>
                             <th>NIM</th>
+                            <th>Mata Kuliah</th>
+                            <th>Status</th>
                             <th>Timestamp</th>
                             <th>Action</th>
                         </tr>
@@ -22,7 +24,9 @@
                             <td>{{ i + 1 }}</td>
                             <td>{{ absen.name }}</td>
                             <td>{{ absen.nim }}</td>
-                            <td>{{ absen.timestamp }}</td>
+                            <td>{{ absen.matkul }}</td>
+                            <td>{{ absen.status }}</td>
+                            <td>{{ formatTimestamp(absen.timestamp) }}</td>
                             <td>
                                 <button class="btn btn-sm btn-primary" @click="editAbsen(absen.id)">Edit</button>
                                 <button class="btn btn-sm btn-danger" @click="deleteAbsen(absen.id)">Delete</button>
@@ -62,11 +66,25 @@ import { ref, onMounted } from 'vue';
 
 import axios from 'axios';
 
+const formatTimestamp = (timestamp) => {
+    const date = new Date(timestamp);
+    return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+};
+
 const exportToExcel = () => {
     import('xlsx').then((XLSX) => {
         const wsData = absenList.value.map((absen) => ({
             Name: absen.name,
             NIM: absen.nim,
+            Status: absen.status,
+            Matkul: absen.matkul,
             Timestamp: absen.timestamp,
         }));
 

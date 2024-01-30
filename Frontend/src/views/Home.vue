@@ -1,21 +1,26 @@
 <template>
     <div>
         <h1>MataKuliah</h1>
+        <div v-if="successAlert" class="alert alert-success" role="alert">
+            {{ successAlert }}
+        </div>
 
         <!-- MataKuliah List -->
         <div class="card mb-4">
             <div class="card-header">MataKuliah List</div>
             <div class="card-body">
                 <div class="container-widget">
+
                     <div class="widget" v-for="matakuliah in matakuliahs" :key="matakuliah.id">
-                        <div class="widget-header" @click="openAbsenModal(matakuliah)" data-bs-toggle="modal"
-                            data-bs-target="#absenModal">
-                            {{ matakuliah.name }}
-                        </div>
-                        <div class="widget-after-header">{{ matakuliah.dosen }}</div>
-                        <div class="widget-body">{{ matakuliah.hari }}</div>
-                        <div class="widget-footer">
-                            {{ matakuliah.jamMulai }} - {{ matakuliah.jamSelesai }}
+                        <div @click="openAbsenModal(matakuliah)" data-bs-toggle="modal" data-bs-target="#absenModal">
+                            <div class="widget-header">
+                                {{ matakuliah.name }}
+                            </div>
+                            <div class="widget-after-header">{{ matakuliah.dosen }}</div>
+                            <div class="widget-body">{{ matakuliah.hari }}</div>
+                            <div class="widget-footer">
+                                {{ formatTime(matakuliah.jamMulai) }} - {{ formatTime(matakuliah.jamSelesai) }}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -35,7 +40,15 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
+                        <div v-if="successAlert" class="alert alert-success" role="alert">
+                            {{ successAlert }}
+                        </div>
+
                         <form @submit.prevent="submitAbsenForm">
+                            <div class="mb-3">
+                                <label for="matkul" class="form-label">Mata Kuliah</label>
+                                <input type="text" class="form-control" v-model="absenForm.matkul" readonly>
+                            </div>
                             <div class="mb-3">
                                 <label for="nim" class="form-label">NIM</label>
                                 <input type="number" class="form-control" v-model="absenForm.nim" required>
@@ -43,14 +56,6 @@
                                 <div v-if="!isNimValid" class="text-danger mt-2">
                                     NIM not found in the database.
                                 </div>
-                            </div>
-                            <div class="mb-3">
-                                <label for="name" class="form-label">Name</label>
-                                <input type="text" class="form-control" v-model="absenForm.name" readonly>
-                            </div>
-                            <div class="mb-3">
-                                <label for="matkul" class="form-label">Mata Kuliah</label>
-                                <input type="text" class="form-control" v-model="absenForm.matkul" readonly>
                             </div>
                             <button type="submit" class="btn btn-primary">Absen</button>
                         </form>
@@ -68,21 +73,28 @@ import axios from 'axios';
 const matakuliahs = ref([]);
 const absenForm = ref({
     nim: null,
-    name: '',
+    name: '', // This can be removed if it's not used in your form
     matkul: '',
 });
 
-const users = ref([]);
-const isNimValid = ref(true); // Track Nim validation status
 
-const fetchUsers = async () => {
-    try {
-        const response = await axios.get('http://localhost:8080/api/users');
-        users.value = response.data;
-    } catch (error) {
-        console.error('Error fetching users:', error);
+const formatTime = (dateTime) => {
+    if (!dateTime) return '';
+
+    const time = new Date(dateTime);
+    if (isNaN(time.getTime())) {
+        return '';
     }
+
+    // Format the time in HH:MM AM/PM format
+    return time.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true // Use 12-hour format with AM/PM
+    });
 };
+
+const isNimValid = ref(true);
 
 const fetchMataKuliahs = async () => {
     try {
@@ -95,45 +107,44 @@ const fetchMataKuliahs = async () => {
 
 const openAbsenModal = (matakuliah) => {
     absenForm.value.matkul = matakuliah.name;
+    absenForm.value.nim = null;
+    isNimValid.value = true;
 };
 
-const submitAbsenForm = async () => {
-    // Reset Nim validation status
-    isNimValid.value = true;
+const successAlert = ref('');
 
-    // Validate NIM against User table and submit Absen if valid
+const submitAbsenForm = async () => {
     try {
-        const response = await axios.get(`http://localhost:8080/api/users/${absenForm.value.nim}`);
-        const user = response.data;
-        if (user) {
-            // Submit Absen with user data and matkul
-            const absenData = {
-                name: user.name,
-                nim: user.nim,
-                matkul: absenForm.value.matkul,
-                timestamp: new Date().toISOString(),
-            };
-            // Send the absenData to the backend API to save the Absen record
-            await axios.post('http://localhost:8080/api/absen', absenData);
-            // Close the modal and reset the form
-            $('#absenModal').modal('hide'); // Close Bootstrap modal
-            absenForm.value.nim = null; // Reset NIM
-            // Optionally, you can update the list of Absen to reflect the new entry
-        } else {
-            // Handle case when NIM is not found
-            isNimValid.value = false; // Set Nim validation status to false
-        }
+        const absenData = {
+            nim: absenForm.value.nim,
+            matkul: absenForm.value.matkul,
+        };
+
+        const response = await axios.post('http://localhost:8080/api/absen', absenData);
+        successAlert.value = `Success to Absen. NIM: ${response.data.nim}, Name: ${response.data.name}, Time: ${new Date(response.data.timestamp).toLocaleString()}`;
+        fetchMataKuliahs();
+
+        // Clear the success message after 3 seconds
+        setTimeout(() => {
+            successAlert.value = '';
+        }, 3000);
+
     } catch (error) {
-        console.error('Error submitting absen:', error);
+        if (error.response && error.response.status === 404) {
+            isNimValid.value = false;
+        } else {
+            console.error('Error submitting absen:', error);
+            // Handle other errors (e.g., show an error message)
+        }
     }
 };
 
+
+
 onMounted(() => {
     fetchMataKuliahs();
-    fetchUsers();
 });
 </script>
-
 
 <style scoped>
 .container-widget {
@@ -150,6 +161,4 @@ onMounted(() => {
     font-weight: 600;
     min-width: 180px;
 }
-
-/* Add your custom styles here */
 </style>
