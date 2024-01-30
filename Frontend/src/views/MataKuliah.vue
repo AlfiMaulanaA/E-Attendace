@@ -103,15 +103,11 @@ const formatTime = (dateTime) => {
   return time.toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit',
-    hour12: true // Use 12-hour format with AM/PM
+    hour12: true
   });
 };
 
-
-
 const prepareFormDataForSubmit = (data) => {
-  // If your backend requires specific formatting for LocalDateTime, do it here
-  // Example: Assuming backend needs a full date-time string
   const today = new Date().toISOString().substring(0, 10); // YYYY-MM-DD
   return {
     ...data,

@@ -73,7 +73,7 @@ import axios from 'axios';
 const matakuliahs = ref([]);
 const absenForm = ref({
     nim: null,
-    name: '', // This can be removed if it's not used in your form
+    name: '',
     matkul: '',
 });
 
@@ -90,7 +90,7 @@ const formatTime = (dateTime) => {
     return time.toLocaleTimeString('en-US', {
         hour: '2-digit',
         minute: '2-digit',
-        hour12: true // Use 12-hour format with AM/PM
+        hour12: true
     });
 };
 
@@ -123,8 +123,6 @@ const submitAbsenForm = async () => {
         const response = await axios.post('http://localhost:8080/api/absen', absenData);
         successAlert.value = `Success to Absen. NIM: ${response.data.nim}, Name: ${response.data.name}, Time: ${new Date(response.data.timestamp).toLocaleString()}`;
         fetchMataKuliahs();
-
-        // Clear the success message after 3 seconds
         setTimeout(() => {
             successAlert.value = '';
         }, 3000);
@@ -134,7 +132,6 @@ const submitAbsenForm = async () => {
             isNimValid.value = false;
         } else {
             console.error('Error submitting absen:', error);
-            // Handle other errors (e.g., show an error message)
         }
     }
 };

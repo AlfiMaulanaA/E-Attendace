@@ -95,15 +95,12 @@ public ResponseEntity<Absen> createAbsen(@RequestBody AbsenDTO absenDTO) {
         }
     }
 
-
     @PutMapping("/{id}")
     public Absen updateAbsen(@PathVariable Long id, @RequestBody Absen updatedAbsen) {
         return absenRepository.findById(id)
                 .map(existingAbsen -> {
-                    // Update the fields of existingAbsen with fields from updatedAbsen
                     existingAbsen.setNim(updatedAbsen.getNim());
                     existingAbsen.setMatkul(updatedAbsen.getMatkul());
-                    // You can update other fields as needed
                     return absenRepository.save(existingAbsen);
                 })
                 .orElseThrow(() -> new AbsenNotFoundException("Absen not found with ID: " + id));
