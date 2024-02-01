@@ -129,6 +129,4 @@ onMounted(() => {
     font-weight: 600;
     min-width: 180px;
 }
-
-/* Add your custom styles here */
 </style>

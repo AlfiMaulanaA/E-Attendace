@@ -18,6 +18,7 @@
                             </div>
                             <div class="widget-after-header">{{ matakuliah.dosen }}</div>
                             <div class="widget-body">{{ matakuliah.hari }}</div>
+                            <div class="widget-body">{{ matakuliah.link }}</div>
                             <div class="widget-footer">
                                 {{ formatTime(matakuliah.jamMulai) }} - {{ formatTime(matakuliah.jamSelesai) }}
                             </div>
@@ -122,6 +123,14 @@ const submitAbsenForm = async () => {
 
         const response = await axios.post('http://localhost:8080/api/absen', absenData);
         successAlert.value = `Success to Absen. NIM: ${response.data.nim}, Name: ${response.data.name}, Time: ${new Date(response.data.timestamp).toLocaleString()}`;
+
+        const matakuliah = matakuliahs.value.find(mk => mk.name === absenForm.value.matkul);
+        if (matakuliah && matakuliah.link) {
+            window.location.href = matakuliah.link; // Redirect to the matakuliah's link
+        } else {
+            console.error('Matakuliah link not found');
+        }        
+
         fetchMataKuliahs();
         setTimeout(() => {
             successAlert.value = '';
